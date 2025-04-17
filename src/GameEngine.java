@@ -1,36 +1,66 @@
+import java.util.ArrayList;
+
 public class GameEngine {
-    private PacMan pacman;
+    private Pacman pacman;
     private ArrayList<Ghost> ghosts;
     private Maze maze;
     private int level;
     private boolean gameOver;
     private boolean gameWon;
 
-    public GameEngine(int width, int height) {}
+    public GameEngine(int width, int height) {
+        pacman = new Pacman(width / 2, height / 2, 30);
+        ghosts = new ArrayList<Ghost>();
+        maze = new Maze(width, height);
+        level = 1;
+        gameOver = false;
+        gameWon = false;
+    }
 
-    private void initializeGhosts() {}
+    public void update() {
+        pacman.move();
+    }
 
-    public void update() {}
+    public void movePacman(int dx, int dy) {
+        pacman.setDirection(dx, dy);
+    }
 
-    public void movePacman(int dx, int dy) {}
+    public Pacman getPacman() {
+        return pacman;
+    }
 
-    public void checkCollisions() {}
+    public ArrayList<Ghost> getGhosts() {
+        return ghosts;
+    }
 
-    private void resetGhosts() {}
+    public Maze getMaze() {
+        return maze;
+    }
 
-    public void checkGameStatus() {}
+    public int getLevel() {
+        return level;
+    }
 
-    public void nextLevel() {}
+    public boolean isGameOver() {
+        return gameOver;
+    }
 
-    public PacMan getPacman() { return null; }
+    public boolean isGameWon() {
+        return gameWon;
+    }
 
-    public ArrayList<Ghost> getGhosts() { return null; }
+    private void initializeGhosts() {
+    }
 
-    public Maze getMaze() { return null; }
+    public void checkCollisions() {
+    }
 
-    public int getLevel() { return 0; }
+    private void resetGhosts() {
+    }
 
-    public boolean isGameOver() { return false; }
+    public void checkGameStatus() {
+    }
 
-    public boolean isGameWon() { return false; }
+    public void nextLevel() {
+    }
 }

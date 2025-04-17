@@ -1,29 +1,21 @@
-public class PacMan extends Sprite {
-    private int lives;
-    private int score;
-    private boolean powered;
+import java.awt.Color;
+import java.awt.Graphics;
 
-    public PacMan(int x, int y, int width, int height) {}
+public class Pacman extends Sprite {
+    private int speed;
 
-    public void move() {}
+    public Pacman(int x, int y, int size) {
+        super(x, y, size, size);
+        speed = 4;
+    }
 
-    public void draw() {}
+    public void setDirection(int dx, int dy) {
+        setDx(dx * speed);
+        setDy(dy * speed);
+    }
 
-    public void eatDot() {}
-
-    public void eatPowerDot() {}
-
-    public void die() {}
-
-    public boolean isPowered() { return false; }
-
-    public void setPowered(boolean powered) {}
-
-    public int getLives() { return 0; }
-
-    public void setLives(int lives) {}
-
-    public int getScore() { return 0; }
-
-    public void setScore(int score) {}
+    public void draw(Graphics g) {
+        g.setColor(Color.RED);
+        g.fillOval(getX(), getY(), getWidth(), getHeight());
+    }
 }

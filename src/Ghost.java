@@ -1,20 +1,30 @@
+import java.awt.Color;
+import java.awt.Graphics;
+
 public class Ghost extends Sprite {
-    private Object color;
+    private Color color;
     private boolean isEdible;
 
-    public Ghost(int x, int y, int width, int height, Object color) {}
+    public Ghost(int x, int y, int size, Color color) {
+        super(x, y, size, size);
+        this.color = color;
+        this.isEdible = false;
+    }
 
-    public void move() {}
+    public void draw(Graphics g) {
+        g.setColor(color);
+        g.fillOval(getX(), getY(), getWidth(), getHeight());
+    }
 
-    public void draw() {}
+    public boolean isEdible() {
+        return isEdible;
+    }
 
-    public void chase(Object pacman) {}
+    public void setEdible(boolean edible) {
+        this.isEdible = edible;
+    }
 
-    public void reset(int startX, int startY) {}
-
-    public boolean isEdible() { return false; }
-
-    public void setEdible(boolean edible) {}
-
-    public Object getColor() { return null; }
+    public Color getColor() {
+        return color;
+    }
 }
