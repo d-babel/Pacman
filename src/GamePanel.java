@@ -43,12 +43,4 @@ public class GamePanel extends JPanel {
     }
 
 
-    public static void main(String[] args) {
-        JFrame frame = new JFrame("Pac-Man Proof-of-Concept");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setResizable(false);
-        frame.add(new GamePanel());
-        frame.pack();
-        frame.setVisible(true);
-    }
 }

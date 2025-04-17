@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 import javax.swing.Timer;
 import java.awt.event.*;
+import javax.swing.JFrame;
 
 public class GameEngine implements ActionListener, KeyListener {
     private Pacman pacman;
@@ -103,5 +104,18 @@ public class GameEngine implements ActionListener, KeyListener {
     @Override
     public void keyReleased(KeyEvent e) {
         movePacman(0, 0);
+    }
+
+    public static void main(String[] args) {
+        int width = 600;
+        int height = 600;
+        int delay = 20;
+        GamePanel panel = new GamePanel();
+        JFrame frame = new JFrame("Pac-Man Proof-of-Concept");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setResizable(false);
+        frame.add(panel);
+        frame.pack();
+        frame.setVisible(true);
     }
 }
