@@ -4,6 +4,7 @@ import java.awt.event.*;
 import javax.swing.JFrame;
 
 public class GameEngine implements ActionListener, KeyListener {
+
     private Pacman pacman;
     private ArrayList<Ghost> ghosts;
     private Maze maze;
@@ -14,15 +15,14 @@ public class GameEngine implements ActionListener, KeyListener {
     private Timer timer;
 
     public GameEngine(int width, int height) {
-        // Compute square tile size and map offsets for centering
         int cols = Maze.COLS;
         int rows = Maze.ROWS;
         int tileSize = Math.min(width / cols, height / rows);
         int xOffset = (width - cols * tileSize) / 2;
         int yOffset = (height - rows * tileSize) / 2;
-        // Initialize Pacman at center of the map
         int startX = xOffset + (cols * tileSize) / 2 - tileSize / 2;
         int startY = yOffset + (rows * tileSize) / 2 - tileSize / 2;
+
         pacman = new Pacman(startX, startY, tileSize);
         ghosts = new ArrayList<Ghost>();
         maze = new Maze(Maze.COLS, Maze.ROWS);
@@ -30,6 +30,7 @@ public class GameEngine implements ActionListener, KeyListener {
         gameOver = false;
         gameWon = false;
     }
+
     public GameEngine(int width, int height, GamePanel panel, int delay) {
         this(width, height);
         this.panel = panel;
@@ -42,6 +43,7 @@ public class GameEngine implements ActionListener, KeyListener {
     public void update() {
         pacman.move();
     }
+
     @Override
     public void actionPerformed(ActionEvent e) {
         update();
@@ -53,6 +55,7 @@ public class GameEngine implements ActionListener, KeyListener {
     public void movePacman(int dx, int dy) {
         pacman.setDirection(dx, dy);
     }
+
     @Override
     public void keyTyped(KeyEvent e) {
     }
@@ -97,6 +100,7 @@ public class GameEngine implements ActionListener, KeyListener {
     public void keyPressed(KeyEvent e) {
         int dx = 0;
         int dy = 0;
+
         if (e.getKeyCode() == KeyEvent.VK_LEFT || e.getKeyCode() == KeyEvent.VK_A) {
             dx = -1;
         } else if (e.getKeyCode() == KeyEvent.VK_RIGHT || e.getKeyCode() == KeyEvent.VK_D) {
@@ -106,8 +110,10 @@ public class GameEngine implements ActionListener, KeyListener {
         } else if (e.getKeyCode() == KeyEvent.VK_DOWN || e.getKeyCode() == KeyEvent.VK_S) {
             dy = 1;
         }
+
         movePacman(dx, dy);
     }
+
     @Override
     public void keyReleased(KeyEvent e) {
     }
@@ -116,8 +122,10 @@ public class GameEngine implements ActionListener, KeyListener {
         int width = 600;
         int height = 600;
         int delay = 20;
+
         GamePanel panel = new GamePanel();
         JFrame frame = new JFrame("Pacman");
+
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setResizable(false);
         frame.add(panel);
