@@ -14,9 +14,18 @@ public class GameEngine implements ActionListener, KeyListener {
     private Timer timer;
 
     public GameEngine(int width, int height) {
-        pacman = new Pacman(width / 2, height / 2, 30);
+        // Compute square tile size and map offsets for centering
+        int cols = Maze.COLS;
+        int rows = Maze.ROWS;
+        int tileSize = Math.min(width / cols, height / rows);
+        int xOffset = (width - cols * tileSize) / 2;
+        int yOffset = (height - rows * tileSize) / 2;
+        // Initialize Pacman at center of the map
+        int startX = xOffset + (cols * tileSize) / 2 - tileSize / 2;
+        int startY = yOffset + (rows * tileSize) / 2 - tileSize / 2;
+        pacman = new Pacman(startX, startY, tileSize);
         ghosts = new ArrayList<Ghost>();
-        maze = new Maze(width, height);
+        maze = new Maze(Maze.COLS, Maze.ROWS);
         level = 1;
         gameOver = false;
         gameWon = false;
@@ -84,8 +93,6 @@ public class GameEngine implements ActionListener, KeyListener {
     public void checkGameStatus() {
     }
 
-    public void nextLevel() {
-    }
     @Override
     public void keyPressed(KeyEvent e) {
         int dx = 0;
@@ -103,7 +110,6 @@ public class GameEngine implements ActionListener, KeyListener {
     }
     @Override
     public void keyReleased(KeyEvent e) {
-        movePacman(0, 0);
     }
 
     public static void main(String[] args) {
@@ -111,7 +117,7 @@ public class GameEngine implements ActionListener, KeyListener {
         int height = 600;
         int delay = 20;
         GamePanel panel = new GamePanel();
-        JFrame frame = new JFrame("Pac-Man Proof-of-Concept");
+        JFrame frame = new JFrame("Pacman");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setResizable(false);
         frame.add(panel);

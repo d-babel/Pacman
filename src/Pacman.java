@@ -6,7 +6,7 @@ public class Pacman extends Sprite {
 
     public Pacman(int x, int y, int size) {
         super(x, y, size, size);
-        speed = 4;
+        speed = size / 4;
     }
 
     public void setDirection(int dx, int dy) {
