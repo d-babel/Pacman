@@ -2,6 +2,8 @@ import java.util.ArrayList;
 import javax.swing.Timer;
 import java.awt.event.*;
 import javax.swing.JFrame;
+import java.util.Queue;
+import java.util.LinkedList;
 
 public class GameEngine implements ActionListener, KeyListener {
 
@@ -13,13 +15,21 @@ public class GameEngine implements ActionListener, KeyListener {
     private boolean gameWon;
     private GamePanel panel;
     private Timer timer;
+    private int tileSize;
+    private int xOffset;
+    private int yOffset;
+    private boolean phaseMode;
+    private int prefDirX;
+    private int prefDirY;
+    private int currDirX;
+    private int currDirY;
 
     public GameEngine(int width, int height) {
         int cols = Maze.COLS;
         int rows = Maze.ROWS;
-        int tileSize = Math.min(width / cols, height / rows);
-        int xOffset = (width - cols * tileSize) / 2;
-        int yOffset = (height - rows * tileSize) / 2;
+        this.tileSize = Math.min(width / cols, height / rows);
+        this.xOffset = (width - cols * tileSize) / 2;
+        this.yOffset = (height - rows * tileSize) / 2;
         int startX = xOffset + (cols * tileSize) / 2 - tileSize / 2;
         int startY = yOffset + (rows * tileSize) / 2 - tileSize / 2;
 
@@ -29,6 +39,78 @@ public class GameEngine implements ActionListener, KeyListener {
         level = 1;
         gameOver = false;
         gameWon = false;
+    }
+    private boolean collides(int testX, int testY) {
+        int pw = pacman.getWidth();
+        int ph = pacman.getHeight();
+        int left = testX;
+        int right = testX + pw - 1;
+        int top = testY;
+        int bottom = testY + ph - 1;
+        int leftCol = (left - xOffset) / tileSize;
+        int rightCol = (right - xOffset) / tileSize;
+        int topRow = (top - yOffset) / tileSize;
+        int bottomRow = (bottom - yOffset) / tileSize;
+        int[][] map = maze.getMap();
+        for (int row = topRow; row <= bottomRow; row++) {
+            for (int col = leftCol; col <= rightCol; col++) {
+                if (row < 0 || row >= map.length || col < 0 || col >= map[0].length || map[row][col] == 1) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    private boolean canMove(int dirX, int dirY) {
+        if (dirX == 0 && dirY == 0) {
+            return false;
+        }
+        // check one-pixel-ahead movement for turn feasibility
+        return !collides(pacman.getX() + dirX, pacman.getY() + dirY);
+    }
+    private void snapPacmanToNearestFree() {
+        int[][] map = maze.getMap();
+        int rows = map.length;
+        int cols = map[0].length;
+        int pw = pacman.getWidth();
+        int ph = pacman.getHeight();
+        int cx = pacman.getX() + pw / 2;
+        int cy = pacman.getY() + ph / 2;
+        int startCol = (cx - xOffset) / tileSize;
+        int startRow = (cy - yOffset) / tileSize;
+        if (startRow < 0) startRow = 0;
+        else if (startRow >= rows) startRow = rows - 1;
+        if (startCol < 0) startCol = 0;
+        else if (startCol >= cols) startCol = cols - 1;
+        boolean[][] visited = new boolean[rows][cols];
+        Queue<int[]> queue = new LinkedList<>();
+        queue.offer(new int[]{startRow, startCol});
+        visited[startRow][startCol] = true;
+        int foundRow = -1, foundCol = -1;
+        while (!queue.isEmpty()) {
+            int[] cell = queue.poll();
+            int r = cell[0], c = cell[1];
+            if (map[r][c] == 0) {
+                foundRow = r;
+                foundCol = c;
+                break;
+            }
+            int[][] dirs = {{-1,0},{1,0},{0,-1},{0,1}};
+            for (int[] d : dirs) {
+                int nr = r + d[0];
+                int nc = c + d[1];
+                if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && !visited[nr][nc]) {
+                    visited[nr][nc] = true;
+                    queue.offer(new int[]{nr, nc});
+                }
+            }
+        }
+        if (foundRow >= 0) {
+            int newX = xOffset + foundCol * tileSize;
+            int newY = yOffset + foundRow * tileSize;
+            pacman.setX(newX);
+            pacman.setY(newY);
+        }
     }
 
     public GameEngine(int width, int height, GamePanel panel, int delay) {
@@ -41,7 +123,26 @@ public class GameEngine implements ActionListener, KeyListener {
     }
 
     public void update() {
+        if (!phaseMode && collides(pacman.getX(), pacman.getY())) {
+            snapPacmanToNearestFree();
+        }
+        if (prefDirX != 0 || prefDirY != 0) {
+            if (phaseMode || canMove(prefDirX, prefDirY)) {
+                currDirX = prefDirX;
+                currDirY = prefDirY;
+            }
+        }
+        if (!phaseMode && (currDirX != 0 || currDirY != 0)) {
+            if (!canMove(currDirX, currDirY)) {
+                currDirX = 0;
+                currDirY = 0;
+            }
+        }
+        pacman.setDirection(currDirX, currDirY);
         pacman.move();
+        if (!phaseMode) {
+            checkCollisions();
+        }
     }
 
     @Override
@@ -88,6 +189,78 @@ public class GameEngine implements ActionListener, KeyListener {
     }
 
     public void checkCollisions() {
+        int px = pacman.getX();
+        int py = pacman.getY();
+        int pw = pacman.getWidth();
+        int ph = pacman.getHeight();
+        int dx = pacman.getDx();
+        int dy = pacman.getDy();
+
+        int left = px;
+        int right = px + pw - 1;
+        int top = py;
+        int bottom = py + ph - 1;
+
+        int leftCol = (left - xOffset) / tileSize;
+        int rightCol = (right - xOffset) / tileSize;
+        int topRow = (top - yOffset) / tileSize;
+        int bottomRow = (bottom - yOffset) / tileSize;
+
+        int[][] map = maze.getMap();
+        boolean collision = false;
+        for (int row = topRow; row <= bottomRow; row++) {
+            for (int col = leftCol; col <= rightCol; col++) {
+                if (row < 0 || row >= map.length || col < 0 || col >= map[0].length
+                        || map[row][col] == 1) {
+                    collision = true;
+                    break;
+                }
+            }
+            if (collision) {
+                break;
+            }
+        }
+
+        if (collision) {
+            // signum function; 0 if = 0 , 1.0 if > 0, -1.0 if < 0.
+            int sdx = Integer.signum(dx);
+            int sdy = Integer.signum(dy);
+            int newX = px;
+            int newY = py;
+            while (true) {
+                int currLeft = newX;
+                int currRight = newX + pw - 1;
+                int currTop = newY;
+                int currBottom = newY + ph - 1;
+                int currLeftCol = (currLeft - xOffset) / tileSize;
+                int currRightCol = (currRight - xOffset) / tileSize;
+                int currTopRow = (currTop - yOffset) / tileSize;
+                int currBottomRow = (currBottom - yOffset) / tileSize;
+                boolean stillColliding = false;
+                for (int row = currTopRow; row <= currBottomRow; row++) {
+                    for (int col = currLeftCol; col <= currRightCol; col++) {
+                        if (row < 0 || row >= map.length
+                                || col < 0 || col >= map[0].length
+                                || map[row][col] == 1) {
+                            stillColliding = true;
+                            break;
+                        }
+                    }
+                    if (stillColliding) {
+                        break;
+                    }
+                }
+                if (!stillColliding || (sdx == 0 && sdy == 0)) {
+                    break;
+                }
+                newX -= sdx;
+                newY -= sdy;
+            }
+            pacman.setX(newX);
+            pacman.setY(newY);
+            pacman.setDx(0);
+            pacman.setDy(0);
+        }
     }
 
     private void resetGhosts() {
@@ -98,24 +271,30 @@ public class GameEngine implements ActionListener, KeyListener {
 
     @Override
     public void keyPressed(KeyEvent e) {
-        int dx = 0;
-        int dy = 0;
-
-        if (e.getKeyCode() == KeyEvent.VK_LEFT || e.getKeyCode() == KeyEvent.VK_A) {
-            dx = -1;
-        } else if (e.getKeyCode() == KeyEvent.VK_RIGHT || e.getKeyCode() == KeyEvent.VK_D) {
-            dx = 1;
-        } else if (e.getKeyCode() == KeyEvent.VK_UP || e.getKeyCode() == KeyEvent.VK_W) {
-            dy = -1;
-        } else if (e.getKeyCode() == KeyEvent.VK_DOWN || e.getKeyCode() == KeyEvent.VK_S) {
-            dy = 1;
+        if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+            phaseMode = true;
+            return;
         }
-
-        movePacman(dx, dy);
+        if (e.getKeyCode() == KeyEvent.VK_LEFT || e.getKeyCode() == KeyEvent.VK_A) {
+            prefDirX = -1;
+            prefDirY = 0;
+        } else if (e.getKeyCode() == KeyEvent.VK_RIGHT || e.getKeyCode() == KeyEvent.VK_D) {
+            prefDirX = 1;
+            prefDirY = 0;
+        } else if (e.getKeyCode() == KeyEvent.VK_UP || e.getKeyCode() == KeyEvent.VK_W) {
+            prefDirX = 0;
+            prefDirY = -1;
+        } else if (e.getKeyCode() == KeyEvent.VK_DOWN || e.getKeyCode() == KeyEvent.VK_S) {
+            prefDirX = 0;
+            prefDirY = 1;
+        }
     }
 
     @Override
     public void keyReleased(KeyEvent e) {
+        if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+            phaseMode = false;
+        }
     }
 
     public static void main(String[] args) {

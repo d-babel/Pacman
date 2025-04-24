@@ -18,4 +18,7 @@ public class Pacman extends Sprite {
         g.setColor(Color.RED);
         g.fillOval(getX(), getY(), getWidth(), getHeight());
     }
+    public int getSpeed() {
+        return speed;
+    }
 }
