@@ -2,6 +2,8 @@ import java.util.ArrayList;
 import javax.swing.Timer;
 import java.awt.event.*;
 import javax.swing.JFrame;
+import java.awt.Graphics;
+import java.awt.Color;
 import java.util.Queue;
 import java.util.LinkedList;
 
@@ -27,7 +29,7 @@ public class GameEngine implements ActionListener, KeyListener {
     public GameEngine(int width, int height) {
         int cols = Maze.COLS;
         int rows = Maze.ROWS;
-        this.tileSize = Math.min(width / cols, height / rows);
+        this.tileSize = Math.max(1, Math.min(width / cols, height / rows));
         this.xOffset = (width - cols * tileSize) / 2;
         this.yOffset = (height - rows * tileSize) / 2;
         int startX = xOffset + (cols * tileSize) / 2 - tileSize / 2;
@@ -65,7 +67,6 @@ public class GameEngine implements ActionListener, KeyListener {
         if (dirX == 0 && dirY == 0) {
             return false;
         }
-        // check one-pixel-ahead movement for turn feasibility
         return !collides(pacman.getX() + dirX, pacman.getY() + dirY);
     }
     private void snapPacmanToNearestFree() {
@@ -222,7 +223,6 @@ public class GameEngine implements ActionListener, KeyListener {
         }
 
         if (collision) {
-            // signum function; 0 if = 0 , 1.0 if > 0, -1.0 if < 0.
             int sdx = Integer.signum(dx);
             int sdy = Integer.signum(dy);
             int newX = px;
@@ -297,6 +297,22 @@ public class GameEngine implements ActionListener, KeyListener {
         }
     }
 
+    public void draw(Graphics g) {
+        int[][] map = maze.getMap();
+        g.setColor(Color.BLUE);
+        for (int r = 0; r < map.length; r++) {
+            for (int c = 0; c < map[0].length; c++) {
+                if (map[r][c] == 1) {
+                    g.fillRect(xOffset + c * tileSize, yOffset + r * tileSize, tileSize, tileSize);
+                }
+            }
+        }
+        for (Ghost ghost : ghosts) {
+            ghost.draw(g);
+        }
+        pacman.draw(g);
+    }
+
     public static void main(String[] args) {
         int width = 600;
         int height = 600;
@@ -310,5 +326,6 @@ public class GameEngine implements ActionListener, KeyListener {
         frame.add(panel);
         frame.pack();
         frame.setVisible(true);
+        panel.requestFocusInWindow();
     }
 }
