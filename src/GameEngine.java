@@ -319,7 +319,7 @@ public class GameEngine implements ActionListener, KeyListener {
         int delay = 20;
 
         GamePanel panel = new GamePanel();
-        JFrame frame = new JFrame("Pacman");
+        JFrame frame = new JFrame("");
 
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setResizable(false);

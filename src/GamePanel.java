@@ -6,14 +6,17 @@ public class GamePanel extends JPanel {
 
     private int delay;
     private GameEngine engine;
+    private static final double ZOOM = 0.9;
 
     public GamePanel() {
         int cols = Maze.COLS;
         int rows = Maze.ROWS;
         int tileSize = Maze.TILE_SIZE;
-        int w = cols * tileSize;
-        int h = rows * tileSize;
-        
+//        int w = cols * tileSize;
+//        int h = rows * tileSize;
+        int h = 1000;
+        int w = 1690;
+
         delay = 20;
         engine = new GameEngine(w, h, this, delay);
         setPreferredSize(new Dimension(w, h));
@@ -25,7 +28,10 @@ public class GamePanel extends JPanel {
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
-        engine.draw(g);
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.scale(ZOOM, ZOOM);
+        engine.draw(g2);
+        g2.dispose();
     }
 
 
