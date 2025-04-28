@@ -1,30 +1,38 @@
-import java.util.ArrayList;
-import javax.swing.Timer;
-import java.awt.event.*;
-import javax.swing.JFrame;
-import java.awt.Graphics;
 import java.awt.Color;
-import java.util.Queue;
+import java.awt.Graphics;
+import java.awt.event.*;
+import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.Queue;
+import javax.swing.JFrame;
+import javax.swing.Timer;
 
 public class GameEngine implements ActionListener, KeyListener {
-
     private Pacman pacman;
     private ArrayList<Ghost> ghosts;
     private Maze maze;
     private int level;
     private boolean gameOver;
     private boolean gameWon;
-    private GamePanel panel;
-    private Timer timer;
-    private int tileSize;
-    private int xOffset;
-    private int yOffset;
+    private int score;
+    private int totalPellets;
+    private String playerName;
+    private long startTime;
+    private String timeString;
     private boolean phaseMode;
     private int prefDirX;
     private int prefDirY;
     private int currDirX;
     private int currDirY;
+    private GamePanel panel;
+    private Timer timer;
+    private int tileSize;
+    private int xOffset;
+    private int yOffset;
+    private boolean[][] pellets;
+    private boolean[][] bigPellets;
+    private int powerTimer = 0;
+    private static final int POWER_DURATION = 400;
 
     public GameEngine(int width, int height) {
         int cols = Maze.COLS;
@@ -32,17 +40,115 @@ public class GameEngine implements ActionListener, KeyListener {
         this.tileSize = Math.max(1, Math.min(width / cols, height / rows));
         this.xOffset = (width - cols * tileSize) / 2;
         this.yOffset = (height - rows * tileSize) / 2;
-        int startX = xOffset + (cols * tileSize) / 2 - tileSize / 2;
-        int startY = yOffset + (rows * tileSize) / 2 - tileSize / 2;
-
-        pacman = new Pacman(startX, startY, tileSize);
-        ghosts = new ArrayList<Ghost>();
+        
         maze = new Maze(Maze.COLS, Maze.ROWS);
+        
+        pellets = new boolean[rows][cols];
+        totalPellets = 0;
+        
+        int[][] map = maze.getMap();
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                if (map[r][c] == 0 && !isGhostSpawnArea(r, c) && isInsideMazeBoundary(r, c)) {
+                    pellets[r][c] = true;
+                    totalPellets++;
+                }
+            }
+        }
+        
+        score = totalPellets;
+        
+        int startX = 0;
+        int startY = 0;
+        int startRow = 0, startCol = 0;
+        boolean found = false;
+        for (int r = 0; r < rows && !found; r++) {
+            for (int c = 0; c < cols && !found; c++) {
+                if (map[r][c] == 0 && !isGhostSpawnArea(r, c)) {
+                    startX = xOffset + c * tileSize;
+                    startY = yOffset + r * tileSize;
+                    startRow = r;
+                    startCol = c;
+                    found = true;
+                }
+            }
+        }
+        
+        boolean[][] reachable = new boolean[rows][cols];
+        Queue<int[]> queue = new LinkedList<>();
+        queue.offer(new int[]{startRow, startCol});
+        reachable[startRow][startCol] = true;
+        int[][] dirs = {{-1,0},{1,0},{0,-1},{0,1}};
+        while (!queue.isEmpty()) {
+            int[] cell = queue.poll();
+            int r = cell[0], c = cell[1];
+            for (int[] d : dirs) {
+                int nr = r + d[0];
+                int nc = c + d[1];
+                if (nc < 0) nc = cols - 1;
+                if (nc >= cols) nc = 0;
+                if (nr >= 0 && nr < rows && !reachable[nr][nc] && map[nr][nc] == 0 && !isGhostSpawnArea(nr, nc)) {
+                    reachable[nr][nc] = true;
+                    queue.offer(new int[]{nr, nc});
+                }
+            }
+        }
+
+        int[] extraRows = {11, 17};
+        for (int er : extraRows) {
+            if (er >= 0 && er < rows) {
+                for (int c = 10; c <= 17; c++) {
+                    if (c >= 0 && c < cols && map[er][c] == 0) {
+                        reachable[er][c] = true;
+                    }
+                }
+            }
+        }
+
+        pellets = new boolean[rows][cols];
+        totalPellets = 0;
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                if (reachable[r][c]) {
+                    pellets[r][c] = true;
+                    totalPellets++;
+                }
+            }
+        }
+        score = totalPellets;
+        
+        pacman = new Pacman(startX, startY, tileSize);
+        
+        ghosts = new ArrayList<Ghost>();
         level = 1;
         gameOver = false;
         gameWon = false;
+        
+        bigPellets = new boolean[rows][cols];
+        int[][] bigPelletPositions = {
+            {1, 1}, {1, Maze.COLS - 2}, {Maze.ROWS - 2, 1}, {Maze.ROWS - 2, Maze.COLS - 2}
+        };
+        for (int[] pos : bigPelletPositions) {
+            if (reachable[pos[0]][pos[1]]) {
+                bigPellets[pos[0]][pos[1]] = true;
+            }
+        }
+        
+        ghosts.add(new Ghost(xOffset + 13 * tileSize, yOffset + 14 * tileSize, tileSize, Color.RED));
+        ghosts.add(new Ghost(xOffset + 14 * tileSize, yOffset + 14 * tileSize, tileSize, Color.PINK));
+        ghosts.add(new Ghost(xOffset + 13 * tileSize, yOffset + 15 * tileSize, tileSize, Color.CYAN));
+        ghosts.add(new Ghost(xOffset + 14 * tileSize, yOffset + 15 * tileSize, tileSize, Color.YELLOW));
     }
-    private boolean collides(int testX, int testY) {
+
+    public boolean isGhostSpawnArea(int row, int col) {
+        return row >= 11 && row <= 19 && col >= 10 && col <= 17;
+    }
+
+    public boolean isInsideMazeBoundary(int row, int col) {
+        return row >= 0 && row < Maze.ROWS && col >= 0 && col < Maze.COLS;
+    }
+
+    public boolean collides(int testX, int testY) {
         int pw = pacman.getWidth();
         int ph = pacman.getHeight();
         int left = testX;
@@ -63,13 +169,15 @@ public class GameEngine implements ActionListener, KeyListener {
         }
         return false;
     }
-    private boolean canMove(int dirX, int dirY) {
+    
+    public boolean canMove(int dirX, int dirY) {
         if (dirX == 0 && dirY == 0) {
             return false;
         }
         return !collides(pacman.getX() + dirX, pacman.getY() + dirY);
     }
-    private void snapPacmanToNearestFree() {
+    
+    public void snapPacmanToNearestFree() {
         int[][] map = maze.getMap();
         int rows = map.length;
         int cols = map[0].length;
@@ -127,20 +235,64 @@ public class GameEngine implements ActionListener, KeyListener {
         if (!phaseMode && collides(pacman.getX(), pacman.getY())) {
             snapPacmanToNearestFree();
         }
+        
+        int pacmanRow = (pacman.getY() - yOffset) / tileSize;
+        int pacmanCol = (pacman.getX() - xOffset) / tileSize;
+        
+        if (pacmanRow >= 0 && pacmanRow < Maze.ROWS && 
+            pacmanCol >= 0 && pacmanCol < Maze.COLS && 
+            pellets[pacmanRow][pacmanCol]) {
+            pellets[pacmanRow][pacmanCol] = false;
+            score--;
+            if (score == 0) {
+                gameWon = true;
+                if (panel != null) {
+                    long elapsed = System.currentTimeMillis() - startTime;
+                    panel.showLeaderboard(elapsed);
+                }
+            }
+        }
+        
+        if (pacmanRow >= 0 && pacmanRow < Maze.ROWS && 
+            pacmanCol >= 0 && pacmanCol < Maze.COLS && 
+            bigPellets[pacmanRow][pacmanCol]) {
+            bigPellets[pacmanRow][pacmanCol] = false;
+            powerTimer = POWER_DURATION;
+            for (Ghost ghost : ghosts) {
+                ghost.setEdible(true);
+            }
+        }
+        
+        if (powerTimer > 0) {
+            powerTimer--;
+            if (powerTimer == 0) {
+                for (Ghost ghost : ghosts) {
+                    ghost.setEdible(false);
+                }
+            }
+        }
+        
         if (prefDirX != 0 || prefDirY != 0) {
             if (phaseMode || canMove(prefDirX, prefDirY)) {
                 currDirX = prefDirX;
                 currDirY = prefDirY;
             }
         }
+        
         if (!phaseMode && (currDirX != 0 || currDirY != 0)) {
             if (!canMove(currDirX, currDirY)) {
                 currDirX = 0;
                 currDirY = 0;
             }
         }
+        
         pacman.setDirection(currDirX, currDirY);
         pacman.move();
+        if (pacman.getX() < xOffset) {
+            pacman.setX(xOffset + (Maze.COLS - 1) * tileSize);
+        } else if (pacman.getX() >= xOffset + (Maze.COLS - 1) * tileSize) {
+            pacman.setX(xOffset);
+        }
         if (!phaseMode) {
             checkCollisions();
         }
@@ -160,33 +312,6 @@ public class GameEngine implements ActionListener, KeyListener {
 
     @Override
     public void keyTyped(KeyEvent e) {
-    }
-
-    public Pacman getPacman() {
-        return pacman;
-    }
-
-    public ArrayList<Ghost> getGhosts() {
-        return ghosts;
-    }
-
-    public Maze getMaze() {
-        return maze;
-    }
-
-    public int getLevel() {
-        return level;
-    }
-
-    public boolean isGameOver() {
-        return gameOver;
-    }
-
-    public boolean isGameWon() {
-        return gameWon;
-    }
-
-    private void initializeGhosts() {
     }
 
     public void checkCollisions() {
@@ -263,10 +388,28 @@ public class GameEngine implements ActionListener, KeyListener {
         }
     }
 
-    private void resetGhosts() {
+    public Pacman getPacman() {
+        return pacman;
     }
 
-    public void checkGameStatus() {
+    public ArrayList<Ghost> getGhosts() {
+        return ghosts;
+    }
+
+    public Maze getMaze() {
+        return maze;
+    }
+
+    public int getLevel() {
+        return level;
+    }
+
+    public boolean isGameOver() {
+        return gameOver;
+    }
+
+    public boolean isGameWon() {
+        return gameWon;
     }
 
     @Override
@@ -307,10 +450,70 @@ public class GameEngine implements ActionListener, KeyListener {
                 }
             }
         }
+        
+        g.setColor(Color.WHITE);
+        for (int r = 0; r < pellets.length; r++) {
+            for (int c = 0; c < pellets[0].length; c++) {
+                if (pellets[r][c]) {
+                    int pelletSize = tileSize / 4;
+                    int pelletX = xOffset + c * tileSize + (tileSize - pelletSize) / 2;
+                    int pelletY = yOffset + r * tileSize + (tileSize - pelletSize) / 2;
+                    g.fillOval(pelletX, pelletY, pelletSize, pelletSize);
+                }
+            }
+        }
+        
+        g.setColor(Color.WHITE);
+        for (int r = 0; r < bigPellets.length; r++) {
+            for (int c = 0; c < bigPellets[0].length; c++) {
+                if (bigPellets[r][c]) {
+                    int pelletSize = tileSize / 2;
+                    int pelletX = xOffset + c * tileSize + (tileSize - pelletSize) / 2;
+                    int pelletY = yOffset + r * tileSize + (tileSize - pelletSize) / 2;
+                    g.fillOval(pelletX, pelletY, pelletSize, pelletSize);
+                }
+            }
+        }
+        
         for (Ghost ghost : ghosts) {
+            if (ghost.isEdible()) {
+                g.setColor(Color.BLUE);
+            } else {
+                g.setColor(ghost.getColor());
+            }
             ghost.draw(g);
         }
+        
         pacman.draw(g);
+    }
+
+    public int getScore() {
+        return score;
+    }
+
+    public void setPlayerName(String name) {
+        this.playerName = name;
+    }
+
+    public String getTimeString() {
+        long elapsedTime = System.currentTimeMillis() - startTime;
+        long seconds = elapsedTime / 1000;
+        long minutes = seconds / 60;
+        seconds = seconds % 60;
+        timeString = String.format("%02d:%02d", minutes, seconds);
+        return timeString;
+    }
+
+    public void setStartTime(long startTime) {
+        this.startTime = startTime;
+    }
+
+    public String getPlayerName() {
+        return playerName;
+    }
+
+    public void setScore(int score) {
+        this.score = score;
     }
 
     public static void main(String[] args) {
