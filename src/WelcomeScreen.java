@@ -22,6 +22,7 @@ public class WelcomeScreen extends JPanel {
         nameField.setHorizontalAlignment(JTextField.CENTER);
         
         startButton = new JButton("START");
+        startButton.setFont(new Font("Arial", Font.BOLD, 24));
         startButton.setBackground(Color.WHITE);
         startButton.setForeground(Color.BLACK);
         
@@ -32,7 +33,10 @@ public class WelcomeScreen extends JPanel {
         add(title);
         add(nameLabel);
         add(namePanel);
-        add(startButton);
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        buttonPanel.setBackground(Color.BLACK);
+        buttonPanel.add(startButton);
+        add(buttonPanel);
     }
     
     public void addStartListener(ActionListener listener) {

@@ -109,7 +109,7 @@ public class GameEngine implements ActionListener, KeyListener {
         totalPellets = 0;
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
-                if (reachable[r][c]) {
+                if (reachable[r][c] && c != 0 && c != 27) {
                     pellets[r][c] = true;
                     totalPellets++;
                 }
@@ -414,6 +414,21 @@ public class GameEngine implements ActionListener, KeyListener {
 
     @Override
     public void keyPressed(KeyEvent e) {
+        if (e.getKeyCode() == KeyEvent.VK_F) {
+            for (int r = 0; r < pellets.length; r++) {
+                for (int c = 0; c < pellets[0].length; c++) {
+                    pellets[r][c] = false;
+                    bigPellets[r][c] = false;
+                }
+            }
+            score = 0;
+            gameWon = true;
+            if (panel != null) {
+                long elapsed = System.currentTimeMillis() - startTime;
+                panel.showLeaderboard(elapsed);
+            }
+            return;
+        }
         if (e.getKeyCode() == KeyEvent.VK_SPACE) {
             phaseMode = true;
             return;

@@ -13,20 +13,23 @@ public class LeaderboardScreen extends JPanel {
         this.leaderboard = leaderboard;
         setLayout(new BorderLayout());
         setBackground(Color.BLACK);
+        setOpaque(true);
         gameFont = new Font("Arial", Font.BOLD, 24);
 
         playAgainButton = new JButton("PLAY AGAIN");
         playAgainButton.setFont(gameFont);
-        playAgainButton.setBackground(Color.WHITE);
-        playAgainButton.setForeground(Color.BLACK);
+        playAgainButton.setBackground(Color.BLACK);
+        playAgainButton.setForeground(Color.WHITE);
+        playAgainButton.setOpaque(true);
         playAgainButton.setFocusPainted(false);
-        playAgainButton.setBorder(BorderFactory.createLineBorder(Color.WHITE));
+        playAgainButton.setBorder(BorderFactory.createLineBorder(Color.WHITE, 2));
         playAgainButton.addActionListener(e -> {
             if (playAgainListener != null) playAgainListener.actionPerformed(e);
         });
 
-        JPanel buttonPanel = new JPanel();
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         buttonPanel.setBackground(Color.BLACK);
+        buttonPanel.setOpaque(true);
         buttonPanel.add(playAgainButton);
         add(buttonPanel, BorderLayout.SOUTH);
     }

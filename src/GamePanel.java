@@ -17,6 +17,7 @@ public class GamePanel extends JPanel {
     private double scale = 0.9;
 
     public GamePanel() {
+        setLayout(new BorderLayout());
         int h = 1000;
         int w = 1690;
 
@@ -31,7 +32,7 @@ public class GamePanel extends JPanel {
         
         welcomeScreen = new WelcomeScreen();
         welcomeScreen.addStartListener(e -> startGame());
-        add(welcomeScreen);
+        add(welcomeScreen, BorderLayout.CENTER);
         
         gameTimer = new Timer(1000, e -> repaint());
     }
@@ -54,22 +55,29 @@ public class GamePanel extends JPanel {
     }
 
     public void showLeaderboard(long timeMillis) {
+        removeAll();
         String timeString = engine.getTimeString();
         String playerName = engine.getPlayerName();
-        
-        leaderboardEntries.add(new LeaderboardScreen.LeaderboardEntry(playerName, timeString, timeMillis));
-        leaderboardEntries.sort((a, b) -> Long.compare(a.timeMillis, b.timeMillis));
 
-        if (leaderboardEntries.size() > 10) leaderboardEntries = leaderboardEntries.subList(0, 10);
+        List<LeaderboardScreen.LeaderboardEntry> entries = LeaderboardManager.loadEntries();
+        entries.add(new LeaderboardScreen.LeaderboardEntry(playerName, timeString, timeMillis));
+        entries.sort((a, b) -> Long.compare(a.timeMillis, b.timeMillis));
+        if (entries.size() > 10) {
+            entries = entries.subList(0, 10);
+        }
+        LeaderboardManager.saveEntries(entries);
+        leaderboardEntries = entries;
         leaderboardScreen = new LeaderboardScreen(leaderboardEntries);
         leaderboardScreen.setPlayAgainListener(e -> {
-            remove(leaderboardScreen);
-            add(welcomeScreen);
+            removeAll();
+            add(welcomeScreen, BorderLayout.CENTER);
             gameStarted = false;
+            revalidate();
             repaint();
         });
-        add(leaderboardScreen);
+        add(leaderboardScreen, BorderLayout.CENTER);
         showLeaderboard = true;
+        revalidate();
         repaint();
     }
 
