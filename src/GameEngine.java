@@ -4,6 +4,8 @@ import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.Arrays;
+import java.util.List;
 import javax.swing.JFrame;
 import javax.swing.Timer;
 
@@ -33,6 +35,9 @@ public class GameEngine implements ActionListener, KeyListener {
     private boolean[][] bigPellets;
     private int powerTimer = 0;
     private static final int POWER_DURATION = 400;
+
+    private static final int GHOST_SPAWN_INTERVAL_SECONDS = 5;
+    private static final double GHOST_SPEED_MULTIPLIER = 0.9;
 
     public GameEngine(int width, int height) {
         int cols = Maze.COLS;
@@ -134,10 +139,14 @@ public class GameEngine implements ActionListener, KeyListener {
             }
         }
         
-        ghosts.add(new Ghost(xOffset + 13 * tileSize, yOffset + 14 * tileSize, tileSize, Color.RED));
-        ghosts.add(new Ghost(xOffset + 14 * tileSize, yOffset + 14 * tileSize, tileSize, Color.PINK));
-        ghosts.add(new Ghost(xOffset + 13 * tileSize, yOffset + 15 * tileSize, tileSize, Color.CYAN));
-        ghosts.add(new Ghost(xOffset + 14 * tileSize, yOffset + 15 * tileSize, tileSize, Color.YELLOW));
+        int[][] ghostPositions = {{13, 14}, {14, 14}, {13, 15}, {14, 15}};
+        List<Color> ghostColors = Arrays.asList(Color.GRAY, Color.PINK, Color.CYAN, Color.YELLOW);
+        for (int i = 0; i < ghostPositions.length; i++) {
+            int gx = xOffset + ghostPositions[i][0] * tileSize;
+            int gy = yOffset + ghostPositions[i][1] * tileSize;
+            long delaySec = (i + 1) * GHOST_SPAWN_INTERVAL_SECONDS;
+            ghosts.add(new Ghost(gx, gy, tileSize, ghostColors.get(i), delaySec));
+        }
     }
 
     public boolean isGhostSpawnArea(int row, int col) {
@@ -168,6 +177,37 @@ public class GameEngine implements ActionListener, KeyListener {
             }
         }
         return false;
+    }
+
+    private boolean collides(Sprite s, int testX, int testY) {
+        int w = s.getWidth();
+        int h = s.getHeight();
+        int left = testX;
+        int right = testX + w - 1;
+        int top = testY;
+        int bottom = testY + h - 1;
+        int leftCol = (left - xOffset) / tileSize;
+        int rightCol = (right - xOffset) / tileSize;
+        int topRow = (top - yOffset) / tileSize;
+        int bottomRow = (bottom - yOffset) / tileSize;
+        int[][] map = maze.getMap();
+        for (int row = topRow; row <= bottomRow; row++) {
+            for (int col = leftCol; col <= rightCol; col++) {
+                if (row < 0 || row >= map.length || col < 0 || col >= map[0].length || map[row][col] == 1) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    /**
+     * Can the given sprite move in the given direction by the given speed?
+     */
+    private boolean canMove(Sprite s, int dirX, int dirY, int speed) {
+        if (dirX == 0 && dirY == 0) {
+            return false;
+        }
+        return !collides(s, s.getX() + dirX * speed, s.getY() + dirY * speed);
     }
     
     public boolean canMove(int dirX, int dirY) {
@@ -248,7 +288,7 @@ public class GameEngine implements ActionListener, KeyListener {
                 gameWon = true;
                 if (panel != null) {
                     long elapsed = System.currentTimeMillis() - startTime;
-                    panel.showLeaderboard(elapsed);
+                    panel.showLeaderboard(elapsed, false);
                 }
             }
         }
@@ -295,6 +335,89 @@ public class GameEngine implements ActionListener, KeyListener {
         }
         if (!phaseMode) {
             checkCollisions();
+        }
+        long now = System.currentTimeMillis();
+        long elapsed = now - startTime;
+        for (Ghost ghost : ghosts) {
+            if (ghost.isInCage()) {
+                if (elapsed >= ghost.getReleaseDelay()) {
+                    ghost.setInCage(false);
+                    int spawnCol = (ghost.getSpawnX() - xOffset) / tileSize;
+                    int exitRow = 11;
+                    ghost.setX(xOffset + spawnCol * tileSize);
+                    ghost.setY(yOffset + exitRow * tileSize);
+                    ghost.setDx(0);
+                    ghost.setDy(0);
+                } else if (elapsed >= ghost.getReleaseDelay() - 3000) {
+                    ghost.setFlashing(true);
+                } else {
+                    ghost.setFlashing(false);
+                }
+            }
+            int hx = ghost.getX();
+            int hy = ghost.getY();
+            int speed = ghost.getSpeed();
+            if ((hx - xOffset) % tileSize == 0 && (hy - yOffset) % tileSize == 0) {
+                int dx = 0, dy = 0;
+                int px = pacman.getX();
+                int py = pacman.getY();
+                int deltaX = px - hx;
+                int deltaY = py - hy;
+                if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                    dx = Integer.signum(deltaX);
+                    if (!canMove(ghost, dx, 0, speed)) {
+                        dx = 0;
+                        dy = Integer.signum(deltaY);
+                        if (!canMove(ghost, 0, dy, speed)) {
+                            dy = 0;
+                        }
+                    }
+                } else {
+                    dy = Integer.signum(deltaY);
+                    if (!canMove(ghost, 0, dy, speed)) {
+                        dy = 0;
+                        dx = Integer.signum(deltaX);
+                        if (!canMove(ghost, dx, 0, speed)) {
+                            dx = 0;
+                        }
+                    }
+                }
+                ghost.setDx(dx * speed);
+                ghost.setDy(dy * speed);
+            }
+            ghost.move();
+            if (ghost.getX() < xOffset) {
+                ghost.setX(xOffset + (Maze.COLS - 1) * tileSize);
+            } else if (ghost.getX() >= xOffset + (Maze.COLS - 1) * tileSize) {
+                ghost.setX(xOffset);
+            }
+            int gLeft = ghost.getX();
+            int gRight = gLeft + ghost.getWidth();
+            int gTop = ghost.getY();
+            int gBottom = gTop + ghost.getHeight();
+            int pLeft = pacman.getX();
+            int pRight = pLeft + pacman.getWidth();
+            int pTop = pacman.getY();
+            int pBottom = pTop + pacman.getHeight();
+            boolean intersect = (gRight > pLeft && gLeft < pRight && gBottom > pTop && gTop < pBottom);
+            if (intersect) {
+                if (!ghost.isEdible()) {
+                    gameOver = true;
+                    timer.stop();
+                    if (panel != null) {
+                        panel.showLeaderboard(elapsed, true);
+                    }
+                    return;
+                } else {
+                    ghost.setInCage(true);
+                    ghost.setFlashing(false);
+                    ghost.setEdible(false);
+                    ghost.setDx(0);
+                    ghost.setDy(0);
+                    ghost.setX(ghost.getSpawnX());
+                    ghost.setY(ghost.getSpawnY());
+                }
+            }
         }
     }
 
@@ -425,7 +548,7 @@ public class GameEngine implements ActionListener, KeyListener {
             gameWon = true;
             if (panel != null) {
                 long elapsed = System.currentTimeMillis() - startTime;
-                panel.showLeaderboard(elapsed);
+                panel.showLeaderboard(elapsed, false);
             }
             return;
         }

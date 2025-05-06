@@ -2,6 +2,7 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.*;
+import  java.awt.geom.AffineTransform;
 
 public class GamePanel extends JPanel {
 
@@ -54,13 +55,13 @@ public class GamePanel extends JPanel {
         requestFocusInWindow();
     }
 
-    public void showLeaderboard(long timeMillis) {
+    public void showLeaderboard(long timeMillis, boolean died) {
         removeAll();
         String timeString = engine.getTimeString();
         String playerName = engine.getPlayerName();
 
         List<LeaderboardScreen.LeaderboardEntry> entries = LeaderboardManager.loadEntries();
-        entries.add(new LeaderboardScreen.LeaderboardEntry(playerName, timeString, timeMillis));
+        entries.add(new LeaderboardScreen.LeaderboardEntry(playerName, timeString, timeMillis, died));
         entries.sort((a, b) -> Long.compare(a.timeMillis, b.timeMillis));
         if (entries.size() > 10) {
             entries = entries.subList(0, 10);
@@ -96,7 +97,7 @@ public class GamePanel extends JPanel {
         g2d.scale(scale, scale);
         engine.draw(g2d);
 
-        g2d.setTransform(new java.awt.geom.AffineTransform());
+        g2d.setTransform(new AffineTransform());
 
         g.setFont(gameFont);
         g.setColor(Color.WHITE);

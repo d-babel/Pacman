@@ -57,6 +57,11 @@ public class LeaderboardScreen extends JPanel {
         
         for (int i = 0; i < Math.min(10, leaderboard.size()); i++) {
             LeaderboardEntry entry = leaderboard.get(i);
+            if (entry.died) {
+                g.setColor(Color.RED);
+            } else {
+                g.setColor(Color.WHITE);
+            }
             String line = String.format("%2d.   %-10s   %s", i + 1, entry.name, entry.timeString);
             g.drawString(line, 100, y);
             y += 35;
@@ -67,11 +72,17 @@ public class LeaderboardScreen extends JPanel {
         public String name;
         public String timeString;
         public long timeMillis;
-        
-        public LeaderboardEntry(String name, String timeString, long timeMillis) {
+        public boolean died;
+
+        public LeaderboardEntry(String name, String timeString, long timeMillis, boolean died) {
             this.name = name;
             this.timeString = timeString;
             this.timeMillis = timeMillis;
+            this.died = died;
+        }
+
+        public LeaderboardEntry(String name, String timeString, long timeMillis) {
+            this(name, timeString, timeMillis, false);
         }
     }
 } 
