@@ -8,6 +8,7 @@ public class Sprite {
     private int width;
     private int height;
 
+    // Constructs a new Sprite with specified position and dimensions.
     public Sprite(int x, int y, int width, int height) {
         this.x = x;
         this.y = y;
@@ -17,12 +18,10 @@ public class Sprite {
         this.dy = 0;
     }
 
+    // Updates the sprite's position based on its current velocity.
     public void move() {
-        x = x + dx;
-        y = y + dy;
-    }
-
-    public void draw(Graphics g) {
+        x += dx;
+        y += dy;
     }
 
     public int getX() {

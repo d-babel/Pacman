@@ -1,112 +1,98 @@
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.awt.geom.AffineTransform;
 import javax.swing.*;
-import  java.awt.geom.AffineTransform;
 
 public class GamePanel extends JPanel {
 
     private int delay;
     private GameEngine engine;
-    private WelcomeScreen welcomeScreen;
+    private StartPanel startPanel;
     private Timer gameTimer;
     private Font gameFont;
     private boolean gameStarted;
-    private LeaderboardScreen leaderboardScreen;
-    private List<LeaderboardScreen.LeaderboardEntry> leaderboardEntries = new ArrayList<>();
-    private boolean showLeaderboard = false;
     private double scale = 0.9;
 
+    // Constructs the GamePanel, setting up UI and initializing the game engine.
     public GamePanel() {
         setLayout(new BorderLayout());
         int h = 1000;
         int w = 1690;
 
-        delay = 20;
+        delay = 16; 
         engine = new GameEngine(w, h, this, delay);
         setPreferredSize(new Dimension(w, h));
         setBackground(Color.BLACK);
         setFocusable(true);
         requestFocusInWindow();
 
+        setDoubleBuffered(true);
+        
         gameFont = new Font("Arial", Font.BOLD, 24);
         
-        welcomeScreen = new WelcomeScreen();
-        welcomeScreen.addStartListener(e -> startGame());
-        add(welcomeScreen, BorderLayout.CENTER);
+        startPanel = new StartPanel();
+        startPanel.addPlayListener(e -> startGame());
+        add(startPanel, BorderLayout.CENTER);
         
-        gameTimer = new Timer(1000, e -> repaint());
+        gameTimer = new Timer(16, e -> repaint());
+        gameTimer.setCoalesce(true);
     }
 
+    // Initializes and starts a new game session.
     public void startGame() {
-        String playerName = welcomeScreen.getPlayerName();
-        if (playerName.isEmpty()) {
-            playerName = "Player";
-        }
-        
-        remove(welcomeScreen);
-        if (leaderboardScreen != null) remove(leaderboardScreen);
-        engine = new GameEngine(getWidth(), getHeight(), this, 20);
-        engine.setPlayerName(playerName);
+        remove(startPanel);
+        engine = new GameEngine(getWidth(), getHeight(), this, delay);
         engine.setStartTime(System.currentTimeMillis());
         gameStarted = true;
-        showLeaderboard = false;
         gameTimer.start();
         requestFocusInWindow();
     }
 
-    public void showLeaderboard(long timeMillis, boolean died) {
-        removeAll();
-        String timeString = engine.getTimeString();
-        String playerName = engine.getPlayerName();
-
-        List<LeaderboardScreen.LeaderboardEntry> entries = LeaderboardManager.loadEntries();
-        entries.add(new LeaderboardScreen.LeaderboardEntry(playerName, timeString, timeMillis, died));
-        entries.sort((a, b) -> Long.compare(a.timeMillis, b.timeMillis));
-        if (entries.size() > 10) {
-            entries = entries.subList(0, 10);
+    // Returns to the start screen, typically after a game ends or is quit.
+    public void returnToStartScreen() {
+        // Prevent returning to start screen if game is active and score is positive.
+        if (engine != null) {
+            if (!engine.isGameOver() && !engine.isGameWon() && engine.getScore() > 0) {
+                return;
+            }
         }
-        LeaderboardManager.saveEntries(entries);
-        leaderboardEntries = entries;
-        leaderboardScreen = new LeaderboardScreen(leaderboardEntries);
-        leaderboardScreen.setPlayAgainListener(e -> {
-            removeAll();
-            add(welcomeScreen, BorderLayout.CENTER);
-            gameStarted = false;
-            revalidate();
-            repaint();
-        });
-        add(leaderboardScreen, BorderLayout.CENTER);
-        showLeaderboard = true;
+        
+        // Reset panel to show start screen.
+        removeAll();
+        add(startPanel, BorderLayout.CENTER);
+        gameStarted = false;
         revalidate();
         repaint();
     }
 
+    // Overrides paintComponent to draw the game elements.
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
         
         if (!gameStarted) {
-            return;
-        }
-        if (showLeaderboard) {
-            return;
+            return; // Don't draw if game hasn't started.
         }
 
         Graphics2D g2d = (Graphics2D) g;
+        
+        // Enable anti-aliasing for smoother graphics.
+        // https://docs.oracle.com/javase/8/docs/api/java/awt/Graphics2D.html
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        
+        // Apply scaling to the game graphics.
         g2d.scale(scale, scale);
-        engine.draw(g2d);
+        engine.draw(g2d); // Delegate drawing of game entities to the engine.
 
+        // Reset transform to draw UI elements like score and time without scaling.
+        // https://docs.oracle.com/javase/8/docs/api/java/awt/geom/AffineTransform.html
         g2d.setTransform(new AffineTransform());
 
         g.setFont(gameFont);
         g.setColor(Color.WHITE);
-        g.drawString("Time: " + engine.getTimeString(), 20, 30);
-        g.drawString("Score: " + engine.getScore(), 20, 60);
-        g.drawString("Player: " + engine.getPlayerName(), 20, 90);
+        // Draw game time and score.
+        g.drawString(engine.getTimeString(), 20, 30);
+        g.drawString(engine.getScoreString(), 20, 60);
     }
 
-    public void setScore(int score) {
-        engine.setScore(score);
-    }
 }

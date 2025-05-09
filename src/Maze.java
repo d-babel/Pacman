@@ -42,15 +42,18 @@ public class Maze {
     private final int height;
     private final int[][] map;
 
+    // Constructs a Maze object, initializing the map layout.
     public Maze(int width, int height) {
         this.width = width;
         this.height = height;
         this.map = new int[height][width];
 
+        // Populate the map array based on the BASE_MAP string representation.
         for (int r = 0; r < height; r++) {
             String row = r < BASE_MAP.length ? BASE_MAP[r] : "";
             for (int c = 0; c < width; c++) {
-                char ch = c < row.length() ? row.charAt(c) : 'X';
+                char ch = c < row.length() ? row.charAt(c) : 'X'; // Default to wall if out of BASE_MAP bounds
+                // 'X' characters represent walls (1), others are paths (0).
                 this.map[r][c] = (ch == 'X' ? 1 : 0);
             }
         }
